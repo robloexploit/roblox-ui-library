@@ -1,5 +1,5 @@
 -- =====================================================
--- Roblox UI Library (Single File, Modular)
+-- Roblox UI Library (Single File, Modular, Draggable)
 -- Repo: robloexploit/roblox-ui-library
 -- =====================================================
 
@@ -9,7 +9,6 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -59,11 +58,14 @@ function Components.Button(parent, text, callback)
     btn.TextSize = 14
     btn.AutoButtonColor = false
     btn.Parent = parent
+    btn.BorderSizePixel = 0
 
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
     btn.MouseEnter:Connect(function()
-        Tween(btn, 0.15, {BackgroundColor3 = Theme.Accent:Lerp(Color3.new(1,1,1),0.1)})
+        Tween(btn, 0.15, {
+            BackgroundColor3 = Theme.Accent:Lerp(Color3.new(1,1,1),0.12)
+        })
     end)
 
     btn.MouseLeave:Connect(function()
@@ -87,6 +89,7 @@ function Components.Toggle(parent, text, default, callback)
     btn.TextSize = 14
     btn.AutoButtonColor = false
     btn.Parent = parent
+    btn.BorderSizePixel = 0
 
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
@@ -111,29 +114,51 @@ end
 -- =========================
 local Window = {}
 Window.__index = Window
-local function MakeDraggable(dragFrame, mainFrame)
-    local dragging = false
-    local dragStart
-    local startPos
 
-    dragFrame.InputBegan:Connect(function(input)
+function Window.new(config)
+    local self = setmetatable({}, Window)
+
+    -- ScreenGui
+    self.Gui = Instance.new("ScreenGui")
+    self.Gui.Name = "RobloxUILibrary"
+    self.Gui.ResetOnSpawn = false
+    self.Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Main Window
+    self.Main = Instance.new("Frame")
+    self.Main.Size = config.Size or UDim2.fromOffset(520,380)
+    self.Main.Position = UDim2.fromScale(0.5,0.5)
+    self.Main.AnchorPoint = Vector2.new(0.5,0.5)
+    self.Main.BackgroundColor3 = Theme.Background
+    self.Main.BorderSizePixel = 0
+    self.Main.Parent = self.Gui
+
+    Instance.new("UICorner", self.Main).CornerRadius = UDim.new(0,12)
+
+    -- =========================
+    -- DRAG SYSTEM (EXECUTOR SAFE)
+    -- =========================
+    local dragging = false
+    local dragStart, startPos
+
+    self.Main.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
-            startPos = mainFrame.Position
+            startPos = self.Main.Position
+        end
+    end)
 
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+    self.Main.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(
+            self.Main.Position = UDim2.new(
                 startPos.X.Scale,
                 startPos.X.Offset + delta.X,
                 startPos.Y.Scale,
@@ -141,27 +166,10 @@ local function MakeDraggable(dragFrame, mainFrame)
             )
         end
     end)
-end
 
-function Window.new(config)
-    local self = setmetatable({}, Window)
-
-    self.Gui = Instance.new("ScreenGui")
-    self.Gui.Name = "RobloxUILibrary"
-    self.Gui.ResetOnSpawn = false
-    self.Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-    self.Main = Instance.new("Frame")
-    self.Main.Size = config.Size or UDim2.fromOffset(520,380)
-    self.Main.BackgroundColor3 = Theme.Background
-    self.Main.Parent = self.Gui
-    self.Main.AnchorPoint = Vector2.new(0.5,0.5)
-    self.Main.Position = UDim2.fromScale(0.5,0.5)
-    self.Main.BorderSizePixel = 0
-
-    Instance.new("UICorner", self.Main).CornerRadius = UDim.new(0,12)
-
-    -- Title
+    -- =========================
+    -- TITLE BAR
+    -- =========================
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1,-20,0,40)
     title.Position = UDim2.new(0,10,0,0)
@@ -169,13 +177,15 @@ function Window.new(config)
     title.Text = config.Title or "UI Library"
     title.Font = Enum.Font.GothamBold
     title.TextSize = 16
-    title.TextXAlignment = Left
+    title.TextXAlignment = Enum.TextXAlignment.Left
     title.TextColor3 = Theme.Text
     title.Parent = self.Main
 
-    -- Content
+    -- =========================
+    -- CONTENT
+    -- =========================
     self.Content = Instance.new("Frame")
-    self.Content.Size = UDim2.new(1,-20,1,-50)
+    self.Content.Size = UDim2.new(1,-20,1,-55)
     self.Content.Position = UDim2.new(0,10,0,45)
     self.Content.BackgroundTransparency = 1
     self.Content.Parent = self.Main
@@ -189,8 +199,9 @@ function Window:AddTab(name)
     tab.BackgroundTransparency = 1
     tab.Parent = self.Content
 
-    local layout = Instance.new("UIListLayout", tab)
+    local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0,8)
+    layout.Parent = tab
 
     return {
         AddButton = function(_, text, cb)
