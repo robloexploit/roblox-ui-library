@@ -1,5 +1,5 @@
 -- =====================================================
--- Roblox UI Library (Single File, Modular, Draggable)
+-- Roblox UI Library (Single File, Modular, Draggable + Headbar)
 -- Repo: robloexploit/roblox-ui-library
 -- =====================================================
 
@@ -31,7 +31,9 @@ local Theme = {
     Surface    = Color3.fromRGB(30,30,30),
     Accent     = Color3.fromRGB(0,170,255),
     Text       = Color3.fromRGB(235,235,235),
-    SubText    = Color3.fromRGB(170,170,170)
+    SubText    = Color3.fromRGB(170,170,170),
+    Close      = Color3.fromRGB(220, 50, 50),
+    Minimize   = Color3.fromRGB(255, 170, 0)
 }
 
 function Theme:Set(custom)
@@ -63,11 +65,8 @@ function Components.Button(parent, text, callback)
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
 
     btn.MouseEnter:Connect(function()
-        Tween(btn, 0.15, {
-            BackgroundColor3 = Theme.Accent:Lerp(Color3.new(1,1,1),0.12)
-        })
+        Tween(btn, 0.15, {BackgroundColor3 = Theme.Accent:Lerp(Color3.new(1,1,1),0.12)})
     end)
-
     btn.MouseLeave:Connect(function()
         Tween(btn, 0.15, {BackgroundColor3 = Theme.Accent})
     end)
@@ -95,9 +94,7 @@ function Components.Toggle(parent, text, default, callback)
 
     local function refresh()
         btn.Text = text .. (state and " : ON" or " : OFF")
-        Tween(btn, 0.15, {
-            BackgroundColor3 = state and Theme.Accent or Theme.Surface
-        })
+        Tween(btn, 0.15, {BackgroundColor3 = state and Theme.Accent or Theme.Surface})
     end
 
     btn.MouseButton1Click:Connect(function()
@@ -136,12 +133,73 @@ function Window.new(config)
     Instance.new("UICorner", self.Main).CornerRadius = UDim.new(0,12)
 
     -- =========================
+    -- HEADBAR
+    -- =========================
+    local head = Instance.new("Frame")
+    head.Size = UDim2.new(1,0,0,40)
+    head.Position = UDim2.new(0,0,0,0)
+    head.BackgroundTransparency = 0
+    head.BackgroundColor3 = Theme.Surface
+    head.BorderSizePixel = 0
+    head.Parent = self.Main
+
+    Instance.new("UICorner", head).CornerRadius = UDim.new(0,12)
+
+    -- Title (kiri)
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0.7,-10,1,0)
+    title.Position = UDim2.new(0,10,0,0)
+    title.BackgroundTransparency = 1
+    title.Text = config.Title or "UI Library"
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 16
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextColor3 = Theme.Text
+    title.Parent = head
+
+    -- Close Button (kanan)
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0,35,1,0)
+    closeBtn.Position = UDim2.new(1,-40,0,0)
+    closeBtn.BackgroundColor3 = Theme.Close
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.new(1,1,1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 16
+    closeBtn.Parent = head
+    closeBtn.BorderSizePixel = 0
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,4)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        self.Gui:Destroy()
+    end)
+
+    -- Minimize Button (kanan)
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0,35,1,0)
+    minBtn.Position = UDim2.new(1,-80,0,0)
+    minBtn.BackgroundColor3 = Theme.Minimize
+    minBtn.Text = "_"
+    minBtn.TextColor3 = Color3.new(1,1,1)
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.TextSize = 16
+    minBtn.Parent = head
+    minBtn.BorderSizePixel = 0
+    Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0,4)
+
+    local contentVisible = true
+    minBtn.MouseButton1Click:Connect(function()
+        contentVisible = not contentVisible
+        self.Content.Visible = contentVisible
+    end)
+
+    -- =========================
     -- DRAG SYSTEM (EXECUTOR SAFE)
     -- =========================
     local dragging = false
     local dragStart, startPos
 
-    self.Main.InputBegan:Connect(function(input)
+    head.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
@@ -149,7 +207,7 @@ function Window.new(config)
         end
     end)
 
-    self.Main.InputEnded:Connect(function(input)
+    head.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
@@ -168,25 +226,11 @@ function Window.new(config)
     end)
 
     -- =========================
-    -- TITLE BAR
-    -- =========================
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1,-20,0,40)
-    title.Position = UDim2.new(0,10,0,0)
-    title.BackgroundTransparency = 1
-    title.Text = config.Title or "UI Library"
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 16
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.TextColor3 = Theme.Text
-    title.Parent = self.Main
-
-    -- =========================
     -- CONTENT
     -- =========================
     self.Content = Instance.new("Frame")
-    self.Content.Size = UDim2.new(1,-20,1,-55)
-    self.Content.Position = UDim2.new(0,10,0,45)
+    self.Content.Size = UDim2.new(1,-20,1,-45)
+    self.Content.Position = UDim2.new(0,10,0,40)
     self.Content.BackgroundTransparency = 1
     self.Content.Parent = self.Main
 
